@@ -1,6 +1,6 @@
 # Panduan Instalasi English Club Hub
 
-Versi 1.0.0 · Fase 1 (MVP) · SMA PGRI 43 Singaparna
+Versi 1.1.0 · Fase 1 (MVP) · SMA PGRI 43 Singaparna
 
 English Club Hub terdiri dari dua bagian:
 
@@ -171,7 +171,7 @@ Buka alamat itu. Halaman depan English Club dengan maskot Leo akan tampil.
 1. **Masuk sebagai admin.** Klik Masuk Anggota, isi `admin` dan kata sandi dari log setup, lalu buat kata sandi baru.
 2. **Atur identitas.** Buka **Pengaturan Aplikasi**:
    - Identitas & tema: nama aplikasi, logo, dan warna. Pratinjau langsung tampil di kanan.
-   - Halaman publik: visi, misi, kegiatan, prestasi, nama dan kontak Pembina, jadwal pertemuan.
+   - Halaman publik: slide foto sampul, teks Tentang, visi, misi, video profil sekolah, kegiatan, prestasi, foto dan kontak Pembina, jadwal pertemuan.
    - Unggahan: batas ukuran berkas (bawaan 10 MB) dan format yang diizinkan.
 3. **Buat akun Pembina.** Buka Pengguna → **Buat akun** → peran **Pembina**.
 4. **Masukkan anggota.** Buka **Import Data**:
@@ -194,6 +194,7 @@ Setiap akun baru wajib membuat kata sandi sendiri saat masuk pertama.
 | ID spreadsheet dan folder Drive | Script Properties | Dicatat juga di sheet `AppConfig` sebagai catatan |
 | Data pengguna, nilai, XP | Google Sheets | Tanpa kata sandi |
 | Berkas tugas siswa | Google Drive (privat) | Hanya disajikan aplikasi setelah cek akses |
+| Foto slide & video profil | Google Drive, folder `Halaman Publik` | Sengaja dibagikan "siapa saja yang memiliki link" (hanya lihat) karena tampil di halaman utama |
 | Alamat `/exec` | `js/config.js` | Bukan rahasia |
 
 Fungsi darurat di editor Apps Script (pilih fungsi lalu Jalankan):
@@ -228,7 +229,7 @@ Pemicu memakai kuota waktu harian Google: sekitar 90 menit per hari untuk akun G
 **Backend:** tempel `Kode.gs` versi baru → Simpan → jalankan `setupAplikasi` (aman diulang, data tidak tersentuh) → **Terapkan → Kelola penerapan → ✏️ Edit → Versi: Versi baru → Terapkan**.
 Jangan memilih "Penerapan baru", karena URL `/exec` akan berganti.
 
-**Frontend:** salin berkas baru ke folder proyek, lalu:
+**Frontend:** salin berkas baru ke folder proyek. Jangan menimpa `js/config.js` karena berisi alamat server Anda. Setelah itu jalankan:
 
 ```bash
 git add .
@@ -274,6 +275,9 @@ Leo si bunglon menemani siswa di halaman siswa. Leo menyapa sekali sehari, membe
 | Admin lupa kata sandi | — | Jalankan `resetSandiAdmin` di editor |
 | Tombol rekam tidak berfungsi | Izin mikrofon ditolak atau situs belum HTTPS | Izinkan mikrofon; centang Enforce HTTPS |
 | Berkas gagal diunggah | Ukuran melebihi batas atau format tidak diizinkan | Gunakan tautan Google Drive, atau ubah batas di Pengaturan → Unggahan |
+| Unggah foto slide atau video gagal: "tidak mengizinkan berbagi tautan publik" | Akun Google Workspace sekolah melarang berbagi ke luar domain | Untuk video, unggah ke YouTube lalu tempel tautannya. Untuk foto, pakai "Tambah dari tautan", atau minta pengelola Workspace mengizinkan berbagi tautan |
+| Foto slide dari tautan Google Drive tidak muncul | Akses berkas di Drive masih "Dibatasi" | Di Drive, ubah akses berkas menjadi "Siapa saja yang memiliki link" |
+| Video unggahan menampilkan "sedang diproses" | Google Drive masih memproses video | Tunggu beberapa menit, lalu muat ulang halaman |
 
 ---
 
@@ -281,6 +285,6 @@ Leo si bunglon menemani siswa di halaman siswa. Leo menyapa sekali sehari, membe
 
 Pengujian dilakukan di simulator Google Apps Script (Node.js) dan browser Chromium, bukan di server Google yang sebenarnya. Setelah dipasang, lakukan sekali uji singkat: masuk, kerjakan satu kuis, dan kirim satu tugas.
 
-- 113 uji backend lulus: setup diulang tanpa duplikasi, login dan penguncian, wajib ganti kata sandi, pencabutan sesi, hak akses per peran, privasi berkas antarsiswa, kunci jawaban kuis tidak bocor, XP tidak terhitung ganda, badge otomatis, import dengan pratinjau yang aman diulang, serta tidak ada kata sandi atau hash di spreadsheet.
+- 132 uji backend lulus: setup diulang tanpa duplikasi, login dan penguncian, wajib ganti kata sandi, pencabutan sesi, hak akses per peran, privasi berkas antarsiswa, kunci jawaban kuis tidak bocor, XP tidak terhitung ganda, badge otomatis, import dengan pratinjau yang aman diulang, unggah foto slide dan video profil hanya oleh Admin, serta tidak ada kata sandi atau hash di spreadsheet.
 - Uji skala 200 akun, 9.000 riwayat XP, dan 5.000 notifikasi: setelah cache hangat, dashboard siswa, leaderboard, dan dashboard Pembina dilayani tanpa membaca spreadsheet.
-- Uji browser di desktop (1366 px) dan HP (390 px): semua halaman Siswa, Pembina, dan Admin terbuka tanpa error JavaScript, termasuk alur kirim tugas, kuis, penilaian, buat akun, ganti tema, unggah logo, dan foto profil.
+- Uji browser di desktop (1366 px) dan HP (390 px): semua halaman Siswa, Pembina, dan Admin terbuka tanpa error JavaScript, termasuk alur kirim tugas, kuis, penilaian, buat akun, ganti tema, unggah logo, foto profil, serta slide foto, video profil, dan foto Pembina di halaman utama.

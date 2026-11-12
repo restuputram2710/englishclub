@@ -130,6 +130,9 @@
     let s; try { s = await API.get('a.settings.get', {}); } catch (e) { return fail(v, e); }
     if (!ctx.alive()) return;
     let tab = 'id', draft = Object.assign({}, s);
+    let slides = []; try { slides = JSON.parse(s.hero_slides || '[]').filter(x => x && x.u).map(x => ({ u: x.u, c: x.c || '' })); } catch (e) { slides = []; }
+    const driveImg = u => { const m = String(u).match(/(?:drive|docs)\.google\.com\/.*?(?:\/d\/|[?&]id=)([\w-]{20,})/); return m ? 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w1600' : u; };
+    const advInit = n => String(n || 'Pembina').replace(/,.*$/, '').split(/\s+/).filter(w => /^[A-Za-z]/.test(w) && !/^(ibu|bapak|pak|bu|mr|mrs|ms|miss)\.?$/i.test(w)).slice(0, 2).map(w => w[0].toUpperCase()).join('') || 'P';
     const DEF = { color_primary: '#2F5BFF', color_gamify: '#8B5CF6', color_gold: '#F5B93A', color_navy: '#0A1633', color_bg: '#F6F9FF' };
     const lum = h => { const c = [1, 3, 5].map(i => parseInt(h.substr(i, 2), 16) / 255).map(x => x <= .03928 ? x / 12.92 : Math.pow((x + .055) / 1.055, 2.4)); return .2126 * c[0] + .7152 * c[1] + .0722 * c[2]; };
     const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
@@ -156,16 +159,54 @@
             <div class="stack-sm"><label class="btn btn-outline btn-sm" style="cursor:pointer">${ic('image', 'i-sm')} Unggah logo<input type="file" accept="image/png,image/jpeg,image/webp" id="lg" hidden></label>${draft.logo ? '<button type="button" class="btn btn-ghost btn-sm" id="lgx">Hapus logo</button>' : ''}<span class="hint">Gambar persegi disarankan. Aplikasi membuat logo 256 px dan thumbnail 64 px otomatis.</span></div></div></div>
           <div class="full"><div class="row between" style="margin:6px 0 10px"><b class="h3">Warna tema</b><button type="button" class="btn btn-ghost btn-sm" id="cdef">${ic('retry', 'i-sm')} Kembalikan warna bawaan</button></div>
             <div class="form-grid">${color('color_primary', 'Warna utama (tombol, progres)', 'Teks putih di atasnya harus tetap terbaca.')}${color('color_gamify', 'Aksen gamifikasi (XP, level)')}${color('color_gold', 'Aksen pencapaian (badge, juara)')}${color('color_navy', 'Navy (sidebar, kartu gelap)')}${color('color_bg', 'Latar halaman')}</div></div></div>`,
-        pub: `<div class="form-grid">
-          ${UI.field({ name: 'about', type: 'textarea', label: 'Tentang English Club', value: draft.about, rows: 3, full: true })}
-          ${UI.field({ name: 'vision', type: 'textarea', label: 'Visi', value: draft.vision, rows: 2, full: true })}
-          ${UI.field({ name: 'mission', type: 'textarea', label: 'Misi (satu per baris)', value: draft.mission, rows: 4, full: true })}
-          ${UI.field({ name: 'activities', type: 'textarea', label: 'Kegiatan (satu per baris: Nama | Jadwal | Deskripsi)', value: draft.activities, rows: 5, full: true })}
-          ${UI.field({ name: 'achievements', type: 'textarea', label: 'Prestasi (satu per baris: Prestasi | Tahun | Keterangan)', value: draft.achievements, rows: 4, full: true, hint: 'Kosongkan bila belum ada. Bagian Prestasi disembunyikan bila kosong.' })}
-          ${UI.field({ name: 'join_steps', type: 'textarea', label: 'Langkah bergabung (satu per baris)', value: draft.join_steps, rows: 3, full: true })}
-          ${UI.field({ name: 'advisor_name', label: 'Nama Pembina', value: draft.advisor_name })}
-          ${UI.field({ name: 'advisor_contact', label: 'Kontak resmi (nomor WhatsApp atau email sekolah)', value: draft.advisor_contact })}
-          ${UI.field({ name: 'meeting_info', label: 'Jadwal pertemuan rutin', value: draft.meeting_info, full: true, placeholder: 'Contoh: Setiap Jumat, 14.00–15.30, Lab Bahasa' })}</div>`,
+        pub: `<div class="set-secs">
+          <p class="small muted">Perubahan di tab ini tampil di halaman utama setelah Anda menekan <b>Simpan perubahan</b>. <a href="#/" target="_blank" rel="noopener">Buka halaman utama ${ic('external', 'i-sm')}</a></p>
+          <section class="set-sec">
+            <div class="set-h"><div class="stack-sm"><h3 class="h3">${ic('image')} Slide foto sampul</h3><p class="small muted">Bergeser otomatis di bawah judul halaman utama. Foto mendatar (16:9) paling pas.</p></div><span class="chip">${slides.length}/12 foto</span></div>
+            <div class="warn-box">${ic('shield')}<span>Tampilkan foto anggota hanya bila siswa dan orang tua/wali sudah memberi izin sesuai aturan sekolah. Foto di sini bisa dilihat siapa saja.</span></div>
+            ${slides.length ? `<div class="slide-eds">${slides.map((x, i) => `<div class="slide-ed">
+              <div class="slide-ed-img"><img src="${attr(x.u)}" alt="Foto ${i + 1}" loading="lazy" referrerpolicy="no-referrer"><span class="slide-ed-n">${i + 1}</span></div>
+              <input class="input" data-sc="${i}" value="${attr(x.c)}" maxlength="140" placeholder="Keterangan foto (opsional)" aria-label="Keterangan foto ${i + 1}">
+              <div class="row-sm"><button type="button" class="icon-btn" data-sm="${i}" data-dir="-1" aria-label="Pindahkan foto ${i + 1} ke depan" ${i === 0 ? 'disabled' : ''}>${ic('chevl', 'i-sm')}</button><button type="button" class="icon-btn" data-sm="${i}" data-dir="1" aria-label="Pindahkan foto ${i + 1} ke belakang" ${i === slides.length - 1 ? 'disabled' : ''}>${ic('chevr', 'i-sm')}</button><span style="flex:1"></span><button type="button" class="icon-btn" data-sx="${i}" aria-label="Hapus foto ${i + 1}">${ic('trash', 'i-sm')}</button></div>
+            </div>`).join('')}</div>` : `<div class="empty slide-empty">${ic('image')}<b>Belum ada foto</b><span class="small">Bagian slide di halaman utama disembunyikan sampai ada foto.</span></div>`}
+            <div class="row">${slides.length < 12 ? `<label class="btn btn-outline btn-sm" id="sl-btn" style="cursor:pointer">${ic('upload', 'i-sm')} <span>Unggah foto</span><input type="file" accept="image/jpeg,image/png,image/webp" multiple id="sl-up" hidden></label><button type="button" class="btn btn-ghost btn-sm" id="sl-link">${ic('link', 'i-sm')} Tambah dari tautan</button><span class="hint">Foto diperkecil otomatis sebelum diunggah.</span>` : '<span class="small muted">Sudah 12 foto. Hapus salah satu untuk menambah.</span>'}</div>
+          </section>
+          <section class="set-sec">
+            <div class="set-h"><h3 class="h3">${ic('filetext')} Teks tentang English Club</h3></div>
+            <div class="form-grid">
+              ${UI.field({ name: 'about', type: 'textarea', label: 'Tentang English Club', value: draft.about, rows: 7, full: true, hint: 'Kalimat pertama tampil di bagian judul. Sisanya tampil di bagian Tentang dan otomatis dibagi menjadi paragraf. Tekan Enter bila ingin menentukan paragraf sendiri.' })}
+              ${UI.field({ name: 'vision', type: 'textarea', label: 'Visi', value: draft.vision, rows: 2, full: true })}
+              ${UI.field({ name: 'mission', type: 'textarea', label: 'Misi (satu per baris)', value: draft.mission, rows: 4, full: true })}
+            </div>
+          </section>
+          <section class="set-sec">
+            <div class="set-h"><div class="stack-sm"><h3 class="h3">${ic('video')} Video profil sekolah</h3><p class="small muted">Tautan YouTube paling disarankan: cepat diputar di HP maupun laptop. Kosongkan bila tidak ingin menampilkan video.</p></div></div>
+            <div class="form-grid">
+              ${UI.field({ name: 'profile_video', label: 'Tautan video (YouTube atau Google Drive)', value: draft.profile_video, full: true, max: 800, placeholder: 'https://youtu.be/…' })}
+              <div class="field full"><div class="row"><label class="btn btn-outline btn-sm" id="vd-btn" style="cursor:pointer">${ic('upload', 'i-sm')} <span>Unggah video sendiri</span><input type="file" accept="video/mp4,video/webm,video/quicktime" id="vd-up" hidden></label><span class="hint">Maksimal 25 MB (.mp4, .webm, .mov). Video disimpan di Google Drive dan butuh beberapa menit diproses sebelum bisa diputar.</span></div></div>
+              ${UI.field({ name: 'video_caption', type: 'textarea', label: 'Keterangan singkat', value: draft.video_caption, rows: 2, full: true, max: 300, placeholder: 'Contoh: Lihat suasana belajar, fasilitas, dan kegiatan siswa di sekolah kami.' })}
+            </div>
+          </section>
+          <section class="set-sec">
+            <div class="set-h"><h3 class="h3">${ic('trophy')} Kegiatan & prestasi</h3></div>
+            <div class="form-grid">
+              ${UI.field({ name: 'activities', type: 'textarea', label: 'Kegiatan (satu per baris: Nama | Jadwal | Deskripsi)', value: draft.activities, rows: 5, full: true })}
+              ${UI.field({ name: 'achievements', type: 'textarea', label: 'Prestasi (satu per baris: Prestasi | Tahun | Keterangan)', value: draft.achievements, rows: 4, full: true, hint: 'Kosongkan bila belum ada. Bagian Prestasi disembunyikan bila kosong.' })}
+            </div>
+          </section>
+          <section class="set-sec">
+            <div class="set-h"><h3 class="h3">${ic('user')} Pembina & cara bergabung</h3></div>
+            <div class="form-grid">
+              <div class="field full"><span class="lbl-f">Foto Pembina</span><div class="row">
+                ${draft.advisor_photo ? `<img src="${attr(draft.advisor_photo)}" alt="Foto Pembina" class="adv-prev">` : `<span class="adv-prev adv-prev-i" aria-hidden="true">${esc(advInit(draft.advisor_name))}</span>`}
+                <div class="stack-sm"><div class="row-sm"><label class="btn btn-outline btn-sm" style="cursor:pointer">${ic('image', 'i-sm')} ${draft.advisor_photo ? 'Ganti foto' : 'Unggah foto'}<input type="file" accept="image/png,image/jpeg,image/webp" id="ap-up" hidden></label>${draft.advisor_photo ? '<button type="button" class="btn btn-ghost btn-sm" id="ap-x">Hapus foto</button>' : ''}</div><span class="hint">Foto dipotong persegi otomatis dan tampil bulat di kartu Pembina. Tanpa foto, inisial nama yang tampil.</span></div>
+              </div></div>
+              ${UI.field({ name: 'advisor_name', label: 'Nama Pembina', value: draft.advisor_name })}
+              ${UI.field({ name: 'advisor_contact', label: 'Kontak resmi (nomor WhatsApp atau email sekolah)', value: draft.advisor_contact })}
+              ${UI.field({ name: 'meeting_info', label: 'Jadwal pertemuan rutin', value: draft.meeting_info, full: true, placeholder: 'Contoh: Setiap Jumat, 14.00–15.30, Lab Bahasa' })}
+              ${UI.field({ name: 'join_steps', type: 'textarea', label: 'Langkah bergabung (satu per baris)', value: draft.join_steps, rows: 3, full: true })}
+            </div>
+          </section></div>`,
         up: `<div class="form-grid">${UI.field({ name: 'max_upload_mb', type: 'number', label: 'Batas ukuran unggah langsung (MB)', value: draft.max_upload_mb, min: 1, maxv: 25, hint: 'Maksimal 25 MB. Video besar sebaiknya lewat tautan Google Drive atau YouTube.' })}
           <div class="field full"><span class="lbl-f">Format yang diizinkan</span><div class="chips-f">${['mp3', 'm4a', 'wav', 'mp4', 'webm', 'pdf', 'docx', 'pptx', 'jpg', 'jpeg', 'png', 'webp'].map(x => `<button type="button" data-ext="${x}" aria-pressed="${String(draft.allowed_ext).split(',').indexOf(x) > -1}">.${x}</button>`).join('')}</div></div></div>`
       }[tab];
@@ -191,6 +232,7 @@
       const cd = f.querySelector('#cdef'); if (cd) cd.onclick = () => { Object.assign(draft, DEF); paint(); };
       const lg = f.querySelector('#lg'); if (lg) lg.onchange = async e => { const file = e.target.files[0]; if (!file) return; try { collect(); draft.logo = await UI.squareThumb(file, 256); draft.logo_thumb = await UI.squareThumb(file, 64); paint(); } catch (x) { toast(x.message, 'err'); } };
       const lx = f.querySelector('#lgx'); if (lx) lx.onclick = () => { draft.logo = ''; draft.logo_thumb = ''; paint(); };
+      if (tab === 'pub') bindPub();
       v.querySelector('#save').onclick = e => UI.busy(e.currentTarget, async () => {
         collect();
         const changes = {}; Object.keys(draft).forEach(k => { if (String(draft[k]) !== String(s[k])) changes[k] = draft[k]; });
@@ -201,8 +243,53 @@
         document.querySelector('.shell') && (document.getElementById('app').innerHTML = '', App.route());
       });
       function collect() {
-        const d = UI.formData(f);
+        const d = UI.formData(v.querySelector('#sf') || f);
         Object.keys(d).forEach(k => { if (k in s) draft[k] = k === 'mascot_enabled' ? String(!!d[k]) : String(d[k]); });
+        draft.hero_slides = slides.length ? JSON.stringify(slides.map(x => ({ u: x.u, c: x.c || '' }))) : '';
+      }
+      /* ---------- slide foto, video profil, foto Pembina ---------- */
+      function bindPub() {
+        const again = () => { if (!ctx.alive() || tab !== 'pub') return; collect(); paint(); };
+        f.querySelectorAll('[data-sc]').forEach(el => el.addEventListener('input', () => { slides[+el.dataset.sc].c = el.value; }));
+        f.querySelectorAll('[data-sm]').forEach(b => b.onclick = () => { const i = +b.dataset.sm, j = i + +b.dataset.dir; collect(); [slides[i], slides[j]] = [slides[j], slides[i]]; paint(); });
+        f.querySelectorAll('[data-sx]').forEach(b => b.onclick = () => { collect(); slides.splice(+b.dataset.sx, 1); paint(); });
+        const label = (id, text) => { const el = f.querySelector(id); if (el) { el.classList.add('loading'); el.style.pointerEvents = 'none'; el.querySelector('span').textContent = text; } };
+        const up = f.querySelector('#sl-up');
+        if (up) up.onchange = async e => {
+          const files = [...e.target.files].slice(0, 12 - slides.length); if (!files.length) return;
+          let done = 0;
+          for (const file of files) {
+            label('#sl-btn', `Mengunggah ${done + 1}/${files.length}…`);
+            try {
+              const data = await UI.resizeImage(file, 1600, 'image/jpeg', 0.82);
+              const r = await API.act('a.media.save', { kind: 'slide', file: { name: file.name.replace(/\.[^.]+$/, '') + '.jpg', mime: 'image/jpeg', b64: data.split(',')[1] } }, { timeout: 120000 });
+              slides.push({ u: r.data.url, c: '' }); done++;
+            } catch (x) { toast(file.name + ': ' + x.message, 'err'); }
+          }
+          if (done) toast(done + ' foto ditambahkan. Tekan Simpan perubahan agar tampil di halaman utama.');
+          again();
+        };
+        const ln = f.querySelector('#sl-link');
+        if (ln) ln.onclick = async () => {
+          const u = await UI.confirmBox({ title: 'Tambah foto dari tautan', text: 'Tempel tautan gambar yang diawali https://. Tautan Google Drive juga bisa, asalkan aksesnya "Siapa saja yang memiliki link".', extra: '<input class="input" id="sl-url" placeholder="https://…" style="margin-top:12px" aria-label="Tautan gambar">', ok: 'Tambah', collect: el => el.querySelector('#sl-url').value.trim() });
+          if (!u) return;
+          if (!/^https:\/\//i.test(u)) return toast('Tautan harus diawali https://', 'err');
+          collect(); slides.push({ u: driveImg(u), c: '' }); paint();
+        };
+        const vd = f.querySelector('#vd-up');
+        if (vd) vd.onchange = async e => {
+          const file = e.target.files[0]; if (!file) return;
+          if (file.size > 25 * 1048576) return toast('Video lebih dari 25 MB. Unggah ke YouTube atau Google Drive, lalu tempel tautannya.', 'err');
+          label('#vd-btn', 'Mengunggah video…');
+          try {
+            const r = await API.act('a.media.save', { kind: 'video', file: { name: file.name, mime: file.type, b64: await UI.readB64(file) } }, { timeout: 300000 });
+            if (ctx.alive() && tab === 'pub') { collect(); draft.profile_video = r.data.url; paint(); } else draft.profile_video = r.data.url;
+            toast(r.message);
+          } catch (x) { toast(x.message, 'err'); again(); }
+        };
+        const ap = f.querySelector('#ap-up');
+        if (ap) ap.onchange = async e => { const file = e.target.files[0]; if (!file) return; try { collect(); draft.advisor_photo = await UI.squareThumb(file, 320); paint(); } catch (x) { toast(x.message, 'err'); } };
+        const ax = f.querySelector('#ap-x'); if (ax) ax.onclick = () => { collect(); draft.advisor_photo = ''; paint(); };
       }
     };
     paint();
